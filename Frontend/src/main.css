@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+/* Nepali Nepal-themed custom utility accents */
+.bg-nepal-crimson {
+  background-color: #DC2626;
+}
+
+.text-nepal-crimson {
+  color: #DC2626;
+}
+
+.border-nepal-crimson {
+  border-color: #DC2626;
+}
+
+.bg-nepal-gold {
+  background-color: #D97706;
+}
+
+.text-nepal-gold {
+  color: #D97706;
+}

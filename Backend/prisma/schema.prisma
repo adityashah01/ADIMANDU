@@ -1,0 +1,530 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  CUSTOMER
+  PROVIDER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PriceType {
+  FIXED
+  HOURLY
+  INSPECTION
+}
+
+enum ServiceType {
+  FIXED_PRICE
+  INSPECTION_BASED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingType {
+  FIXED_PRICE
+  INSPECTION
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  ESCROW_HELD
+  INSPECTION_PAID
+  RELEASED
+  FAILED
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  CONSULTATION
+  INSPECTION_REQUESTED
+  INSPECTION_SCHEDULED
+  INSPECTION_COMPLETED
+  QUOTE_SENT
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum InspectionStatus {
+  REQUESTED
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum TransactionType {
+  SERVICE_PAYMENT
+  INSPECTION_PAYMENT
+  PLATFORM_FEE
+  PROVIDER_EARNING
+  REFUND
+  PAYOUT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum NotificationType {
+  GENERAL
+  BOOKING_CREATED
+  BOOKING_UPDATED
+  REVIEW_RECEIVED
+  APPLICATION_UPDATED
+  PAYMENT_RECEIVED
+  QUOTE_SUBMITTED
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
+  INSPECTION_REQUESTED
+  SERVICE_REQUEST_CREATED
+  SERVICE_REQUEST_UPDATED
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  phone        String?
+  role         UserRole   @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+  avatarUrl    String?
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  providerProfile     ProviderProfile?
+  providerApplication ProviderApplication?
+
+  customerBookings  Booking[]        @relation("CustomerBookings")
+  serviceRequests   ServiceRequest[] @relation("CustomerRequests")
+  reviewsWritten    Review[]         @relation("CustomerReviews")
+  notifications     Notification[]
+}
+
+// ─────────────────────────────────────────────
+// PROVIDER APPLICATION
+// ─────────────────────────────────────────────
+
+model ProviderApplication {
+  id              String            @id @default(cuid())
+  userId          String?           @unique
+  name            String
+  email           String
+  phone           String
+  location        String?
+  latitude        Float?
+  longitude       Float?
+  categoryId      String
+  skills          String[]
+  experience      String
+  bio             String?
+  profileImageUrl String?
+  status          ApplicationStatus @default(PENDING)
+  adminNote       String?
+  reviewedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  category Category @relation(fields: [categoryId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY
+// ─────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  providers       ProviderProfile[]
+  catalogServices CatalogService[]
+  applications    ProviderApplication[]
+  services        Service[]
+}
+
+// ─────────────────────────────────────────────
+// CATALOG SERVICE  (category-level service definition)
+// ─────────────────────────────────────────────
+
+model CatalogService {
+  id            String      @id @default(cuid())
+  categoryId    String
+  name          String
+  slug          String      @unique
+  description   String?
+  serviceType   ServiceType @default(FIXED_PRICE)
+  basePrice     Decimal?    @db.Decimal(10, 2) // null for INSPECTION_BASED
+  inspectionFee Decimal?    @db.Decimal(10, 2)
+  imageUrl      String?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  category         Category          @relation(fields: [categoryId], references: [id])
+  providerServices ProviderService[]
+  bookings         Booking[]
+  serviceRequests  ServiceRequest[]
+}
+
+// ─────────────────────────────────────────────
+// PROVIDER PROFILE
+// ─────────────────────────────────────────────
+
+model ProviderProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  categoryId    String
+  businessName  String?
+  bio           String?
+  location      String?
+  latitude      Float?
+  longitude     Float?
+  serviceArea   String?
+  skills        String[]
+  experience    String?
+  price         Decimal   @db.Decimal(10, 2)
+  priceUnit     String    @default("per visit")
+  priceType     PriceType @default(FIXED)
+  verified      Boolean   @default(false)
+  isAvailable   Boolean   @default(true)
+  averageRating Float     @default(0)
+  reviewCount   Int       @default(0)
+  jobsCompleted Int       @default(0)
+  walletBalance Decimal   @default(0) @db.Decimal(10, 2)
+  totalEarnings Decimal   @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  // Legacy provider-owned services (kept for backward compat)
+  services Service[]
+
+  // New: which catalog services this provider offers
+  providerServices ProviderService[]
+
+  availability Availability[]
+
+  bookings        Booking[]        @relation("ProviderBookings")
+  serviceRequests ServiceRequest[] @relation("ProviderRequests")
+  serviceQuotes   ServiceQuote[]
+
+  reviews Review[] @relation("ProviderReviews")
+}
+
+// ─────────────────────────────────────────────
+// PROVIDER SERVICE  (bridge: provider ↔ catalog service)
+// ─────────────────────────────────────────────
+
+model ProviderService {
+  id               String   @id @default(cuid())
+  providerId       String
+  catalogServiceId String
+  customPrice      Decimal? @db.Decimal(10, 2)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  provider       ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  catalogService CatalogService  @relation(fields: [catalogServiceId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, catalogServiceId])
+}
+
+// ─────────────────────────────────────────────
+// LEGACY PROVIDER-OWNED SERVICE (kept for backward compat)
+// ─────────────────────────────────────────────
+
+model Service {
+  id          String    @id @default(cuid())
+  providerId  String
+  categoryId  String
+  name        String
+  description String?
+  price       Decimal   @db.Decimal(10, 2)
+  priceType   PriceType @default(FIXED)
+  priceUnit   String    @default("per service")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id])
+  category Category        @relation(fields: [categoryId], references: [id])
+  bookings Booking[]
+}
+
+// ─────────────────────────────────────────────
+// AVAILABILITY
+// ─────────────────────────────────────────────
+
+model Availability {
+  id          String  @id @default(cuid())
+  providerId  String
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  isAvailable Boolean @default(true)
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// BOOKING  (Category A — Fixed Price)
+// ─────────────────────────────────────────────
+
+model Booking {
+  id              String        @id @default(cuid())
+  bookingNumber   String        @unique
+  customerId      String
+  providerId      String
+  serviceId       String?       // legacy provider-owned service
+  catalogServiceId String?      // new catalog service
+  serviceName     String
+  scheduledDate   DateTime
+  timeSlot        String
+  address         String
+  landmark        String?
+  notes           String?
+  contactName     String
+  contactPhone    String
+  quotedPrice     Decimal?      @db.Decimal(10, 2)
+  finalPrice      Decimal?      @db.Decimal(10, 2)
+  status          BookingStatus @default(PENDING)
+  bookingType     BookingType   @default(FIXED_PRICE)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  escrowAmount    Decimal?      @db.Decimal(10, 2)
+  inspectionFee   Decimal?      @db.Decimal(10, 2)
+  paymentMethod   String?
+  paymentTxnId    String?
+  customerConfirmedAt DateTime?
+  confirmedAt     DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancellationReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customer       User            @relation("CustomerBookings", fields: [customerId], references: [id])
+  provider       ProviderProfile @relation("ProviderBookings", fields: [providerId], references: [id])
+  service        Service?        @relation(fields: [serviceId], references: [id])
+  catalogService CatalogService? @relation(fields: [catalogServiceId], references: [id])
+
+  review       Review?
+  quote        Quote?
+  transactions Transaction[]
+}
+
+// ─────────────────────────────────────────────
+// SERVICE REQUEST  (Category B — Inspection-Based)
+// ─────────────────────────────────────────────
+
+model ServiceRequest {
+  id               String               @id @default(cuid())
+  requestNumber    String               @unique
+  customerId       String
+  providerId       String
+  catalogServiceId String
+  serviceName      String
+  description      String
+  address          String
+  images           String[]             @default([])
+  status           ServiceRequestStatus @default(PENDING)
+  paymentStatus    PaymentStatus        @default(UNPAID)
+  inspectionFee    Decimal?             @db.Decimal(10, 2)
+  finalAmount      Decimal?             @db.Decimal(10, 2)
+  paymentMethod    String?
+  paymentTxnId     String?
+  escrowAmount     Decimal?             @db.Decimal(10, 2)
+  customerConfirmedAt DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  cancellationReason String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  customer       User            @relation("CustomerRequests", fields: [customerId], references: [id])
+  provider       ProviderProfile @relation("ProviderRequests", fields: [providerId], references: [id])
+  catalogService CatalogService  @relation(fields: [catalogServiceId], references: [id])
+
+  inspection   Inspection?
+  quote        ServiceQuote?
+  review       Review?
+  transactions Transaction[]
+}
+
+// ─────────────────────────────────────────────
+// INSPECTION
+// ─────────────────────────────────────────────
+
+model Inspection {
+  id               String           @id @default(cuid())
+  serviceRequestId String           @unique
+  scheduledDate    DateTime?
+  scheduledTime    String?
+  status           InspectionStatus @default(REQUESTED)
+  diagnosis        String?
+  providerNotes    String?
+  completedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  serviceRequest ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────
+// SERVICE QUOTE  (for Category B requests)
+// ─────────────────────────────────────────────
+
+model ServiceQuote {
+  id               String      @id @default(cuid())
+  serviceRequestId String      @unique
+  providerId       String
+  diagnosis        String?
+  labourCost       Decimal     @db.Decimal(10, 2)
+  partsCost        Decimal     @default(0) @db.Decimal(10, 2)
+  inspectionCost   Decimal     @default(0) @db.Decimal(10, 2)
+  totalAmount      Decimal     @db.Decimal(10, 2)
+  description      String?
+  status           QuoteStatus @default(DRAFT)
+  validUntil       DateTime?
+  customerResponse String?
+  respondedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  serviceRequest ServiceRequest  @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  provider       ProviderProfile @relation(fields: [providerId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// LEGACY QUOTE  (for Category A bookings — kept for compat)
+// ─────────────────────────────────────────────
+
+model Quote {
+  id          String      @id @default(cuid())
+  bookingId   String      @unique
+  amount      Decimal     @db.Decimal(10, 2)
+  notes       String?
+  status      QuoteStatus @default(DRAFT)
+  submittedAt DateTime    @default(now())
+  respondedAt DateTime?
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────
+// REVIEW
+// ─────────────────────────────────────────────
+
+model Review {
+  id               String   @id @default(cuid())
+  bookingId        String?  @unique
+  serviceRequestId String?  @unique
+  customerId       String
+  providerId       String
+  rating           Int
+  comment          String?
+  providerReply    String?
+  createdAt        DateTime @default(now())
+
+  booking        Booking?        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  customer       User            @relation("CustomerReviews", fields: [customerId], references: [id])
+  provider       ProviderProfile @relation("ProviderReviews", fields: [providerId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// TRANSACTION LEDGER
+// ─────────────────────────────────────────────
+
+model Transaction {
+  id               String            @id @default(cuid())
+  bookingId        String?
+  serviceRequestId String?
+  providerId       String?
+  customerId       String?
+  type             TransactionType
+  amount           Decimal           @db.Decimal(10, 2)
+  status           TransactionStatus @default(COMPLETED)
+  reference        String?
+  description      String?
+  createdAt        DateTime          @default(now())
+
+  booking        Booking?        @relation(fields: [bookingId], references: [id])
+  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType @default(GENERAL)
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

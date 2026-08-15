@@ -1,0 +1,43 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "I",
+    "am",
+    "the",
+    "ghost"
+  ],
+  "homepage": "https://github.com/SandeshKhadka23/SewaCenter#readme",
+  "bugs": {
+    "url": "https://github.com/SandeshKhadka23/SewaCenter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SandeshKhadka23/SewaCenter.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "axios": "^1.19.0",
+    "bcryptjs": "^2.4.3",
+    "colors": "^1.4.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "groq-sdk": "^1.5.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemon": "^3.1.14",
+    "pg": "^8.22.0",
+    "prisma": "^6.19.3"
+  }
+}

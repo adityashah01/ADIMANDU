@@ -1,0 +1,12 @@
+{
+  "name": "Sewa Center",
+  "description": "Nepal's Premium Home Service Marketplace connecting customers with verified professionals for plumbing, electrical, cleaning, and more.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

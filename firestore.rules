@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // Categories (Publicly readable)
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false; // Only via Admin SDK/Seed
+    }
+
+    // Catalog Services
+    match /catalogServices/{serviceId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Provider Profiles
+    match /providerProfiles/{profileId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+  }
+}

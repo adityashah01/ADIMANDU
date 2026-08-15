@@ -1,0 +1,54 @@
+{
+  "collections": {
+    "users": {
+      "description": "System users (Customers, Providers, Admins)",
+      "fields": {
+        "name": "string",
+        "email": "string",
+        "role": "string",
+        "status": "string",
+        "avatarUrl": "string",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "categories": {
+      "description": "Service categories",
+      "fields": {
+        "name": "string",
+        "slug": "string",
+        "description": "string",
+        "imageUrl": "string",
+        "createdAt": "timestamp"
+      }
+    },
+    "catalogServices": {
+      "description": "Standard service definitions per category",
+      "fields": {
+        "categoryId": "string",
+        "name": "string",
+        "slug": "string",
+        "serviceType": "string",
+        "basePrice": "number",
+        "inspectionFee": "number",
+        "isActive": "boolean"
+      }
+    },
+    "providerProfiles": {
+      "description": "Extended profile for providers",
+      "fields": {
+        "userId": "string",
+        "categoryId": "string",
+        "businessName": "string",
+        "bio": "string",
+        "location": "string",
+        "skills": "array",
+        "experience": "string",
+        "price": "number",
+        "verified": "boolean",
+        "averageRating": "number",
+        "reviewCount": "number"
+      }
+    }
+  }
+}
